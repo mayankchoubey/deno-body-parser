@@ -74,7 +74,11 @@ export enum MIME_CONTENT_TYPES {
     RAR='application/vnd.rar',
     RTF='application/rtf',
     SVG='image/svg+xml',
-    TEXT_PLAIN='text/plain',
+    TAR='application/x-tar',
+    TEXT='text/plain',
+    WAV='audio/wav',
+    XLS='application/vnd.ms-excel',
+    XLS_X='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     MULTIPART_FORM_DATA='multipart/form-data',
     
     
@@ -226,11 +230,35 @@ export const SupportedContentTypeMetadata: {[index: string]:any}={
         resp: ResponseTypes.RESP_TYPE_BINARY,
         parser: PARSER_TYPES.BINARY
     },
+    TAR: {
+        ct: MIME_CONTENT_TYPES.TAR,
+        ext: 'tar',
+        resp: ResponseTypes.RESP_TYPE_BINARY,
+        parser: PARSER_TYPES.BINARY
+    },
     TEXT: {
-        ct: MIME_CONTENT_TYPES.TEXT_PLAIN,
+        ct: MIME_CONTENT_TYPES.TEXT,
         ext: 'txt',
         resp: ResponseTypes.RESP_TYPE_TXT,
         parser: PARSER_TYPES.TEXT
+    },
+    WAV: {
+        ct: MIME_CONTENT_TYPES.WAV,
+        ext: 'wav',
+        resp: ResponseTypes.RESP_TYPE_BINARY,
+        parser: PARSER_TYPES.BINARY
+    },
+    XLS: {
+        ct: MIME_CONTENT_TYPES.XLS,
+        ext: 'xls',
+        resp: ResponseTypes.RESP_TYPE_BINARY,
+        parser: PARSER_TYPES.BINARY
+    },
+    XLS_X: {
+        ct: MIME_CONTENT_TYPES.XLS_X,
+        ext: 'xlsx',
+        resp: ResponseTypes.RESP_TYPE_BINARY,
+        parser: PARSER_TYPES.BINARY
     },
     MFD: {
         ct: MIME_CONTENT_TYPES.MULTIPART_FORM_DATA,

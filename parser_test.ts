@@ -646,54 +646,110 @@ Deno.test(`ct=image/svg+xml, sbtftp`, async () => {
     await fileAsserts(ret.files, TEMP_DIR, ext, true);
 });
 
-
-/*
-
-Deno.test(`cl=?, ct=application/octet-stream, body=${AAC_AUDIO_FILE_PATH}, sbtf`, async () => {
-    const req=new ServerRequest();
-    await addBody(req, HDR_VAL_OCTET_STREAM, undefined, AAC_AUDIO_FILE_PATH);
-    const ret=await parse(req, OPTIONS_SAVE_BODY_TO_FILE);
-    assert(typeof ret === 'string');
-    assert(ret.startsWith('./'));
-    const origFile=await Deno.readFile(AAC_AUDIO_FILE_PATH);
-    const gotFie=await Deno.readFile(ret);
-    assert(gotFie.length === origFile.length);
-    await Deno.remove(ret);
-});
-
-
-
-
-
-
-Deno.test("cl=4, ct=text/plain, body=ABCD", async () => {
-    const req=new ServerRequest();
-    await addBody(req, ParserMeta.MIME_CONTENT_TYPES.TEXT_PLAIN, 'ABCD');
+Deno.test(`ct=application/x-tar`, async () => {
+    const ext='tar';
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.TAR, undefined, ext);
     const ret=await parse(req);
-    assert(typeof ret.txt === 'string');
-    assert(ret.txt.length === 4);
+    await rawAsserts(ret, undefined, ext);
 });
 
-Deno.test("cl=9, ct=text/plain, body=123456789", async () => {
-    const req=new ServerRequest();
-    await addBody(req, ParserMeta.MIME_CONTENT_TYPES.TEXT_PLAIN, "123456789");
-    const ret=await parse(req);
-    assert(typeof ret.txt === 'string');
-    assert(ret.txt.length === 9);
-});
-
-Deno.test("cl=9, ct=text/plain, body=123456789, sbtf", async () => {
-    const req=new ServerRequest();
-    await addBody(req, ParserMeta.MIME_CONTENT_TYPES.TEXT_PLAIN, "123456789");
+Deno.test(`ct=application/x-tar, sbtf`, async () => {
+    const ext='tar';
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.TAR, undefined, ext);
     const ret=await parse(req, OPTIONS_SAVE_BODY_TO_FILE);
-    await fileAsserts(ret.files, './', 'txt');
+    await fileAsserts(ret.files, LOCAL_DIR, ext, true);
 });
 
-Deno.test("cl=9, ct=text/plain, body=123456789, sbtf", async () => {
-    const req=new ServerRequest();
-    await addBody(req, ParserMeta.MIME_CONTENT_TYPES.TEXT_PLAIN, "123456789");
+Deno.test(`ct=application/x-tar, sbtftp`, async () => {
+    const ext='tar';
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.TAR, undefined, ext);
     const ret=await parse(req, OPTIONS_SAVE_BODY_TO_FILE_TO_PATH);
-    await fileAsserts(ret.files, '/var/tmp', 'txt');
+    await fileAsserts(ret.files, TEMP_DIR, ext, true);
 });
 
-*/
+
+Deno.test(`ct=text/plain, body=${SIMPLE_TEXT_BODY_ALPHABET}`, async () => {
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.TEXT, SIMPLE_TEXT_BODY_ALPHABET, undefined);
+    const ret=await parse(req);
+    await textAsserts(ret, SIMPLE_TEXT_BODY_ALPHABET);
+});
+
+Deno.test(`ct=text/plain, body=${SIMPLE_TEXT_BODY_ALPHABET}, sbtf`, async () => {
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.TEXT, SIMPLE_TEXT_BODY_ALPHABET, undefined);
+    const ret=await parse(req, OPTIONS_SAVE_BODY_TO_FILE);
+    await fileAsserts(ret.files, LOCAL_DIR, 'txt');
+});
+
+Deno.test(`ct=text/plain, body=${SIMPLE_TEXT_BODY_ALPHABET}, sbtftp`, async () => {
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.TEXT, SIMPLE_TEXT_BODY_ALPHABET, undefined);
+    const ret=await parse(req, OPTIONS_SAVE_BODY_TO_FILE_TO_PATH);
+    await fileAsserts(ret.files, TEMP_DIR, 'txt');
+});
+
+Deno.test(`ct=text/plain, body=${SIMPLE_TEXT_BODY_NUMBERS}`, async () => {
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.TEXT, SIMPLE_TEXT_BODY_NUMBERS, undefined);
+    const ret=await parse(req);
+    await textAsserts(ret, SIMPLE_TEXT_BODY_NUMBERS);
+});
+
+Deno.test(`ct=text/plain, body=${SIMPLE_TEXT_BODY_NUMBERS}, sbtf`, async () => {
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.TEXT, SIMPLE_TEXT_BODY_NUMBERS, undefined);
+    const ret=await parse(req, OPTIONS_SAVE_BODY_TO_FILE);
+    await fileAsserts(ret.files, LOCAL_DIR, 'txt');
+});
+
+Deno.test(`ct=text/plain, body=${SIMPLE_TEXT_BODY_NUMBERS}, sbtftp`, async () => {
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.TEXT, SIMPLE_TEXT_BODY_NUMBERS, undefined);
+    const ret=await parse(req, OPTIONS_SAVE_BODY_TO_FILE_TO_PATH);
+    await fileAsserts(ret.files, TEMP_DIR, 'txt');
+});
+
+Deno.test(`ct=text/plain`, async () => {
+    const ext='txt';
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.TEXT, undefined, ext);
+    const ret=await parse(req);
+    await textAsserts(ret, undefined, ext);
+});
+
+Deno.test(`ct=audio/wav`, async () => {
+    const ext='wav';
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.WAV, undefined, ext);
+    const ret=await parse(req);
+    await rawAsserts(ret, undefined, ext);
+});
+
+Deno.test(`ct=audio/wav, sbtf`, async () => {
+    const ext='wav';
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.WAV, undefined, ext);
+    const ret=await parse(req, OPTIONS_SAVE_BODY_TO_FILE);
+    await fileAsserts(ret.files, LOCAL_DIR, ext, true);
+});
+
+Deno.test(`ct=audio/wav, sbtftp`, async () => {
+    const ext='wav';
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.WAV, undefined, ext);
+    const ret=await parse(req, OPTIONS_SAVE_BODY_TO_FILE_TO_PATH);
+    await fileAsserts(ret.files, TEMP_DIR, ext, true);
+});
+
+Deno.test(`ct=application/vnd.ms-excel`, async () => {
+    const ext='xls';
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.XLS, undefined, ext);
+    const ret=await parse(req);
+    await rawAsserts(ret, undefined, ext);
+});
+
+Deno.test(`ct=application/vnd.ms-excel, sbtf`, async () => {
+    const ext='xls';
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.XLS, undefined, ext);
+    const ret=await parse(req, OPTIONS_SAVE_BODY_TO_FILE);
+    await fileAsserts(ret.files, LOCAL_DIR, ext, true);
+});
+
+Deno.test(`ct=application/vnd.ms-excel, sbtftp`, async () => {
+    const ext='xls';
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.XLS, undefined, ext);
+    const ret=await parse(req, OPTIONS_SAVE_BODY_TO_FILE_TO_PATH);
+    await fileAsserts(ret.files, TEMP_DIR, ext, true);
+});
+

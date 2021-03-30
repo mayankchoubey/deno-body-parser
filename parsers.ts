@@ -35,6 +35,25 @@ export const Parsers: Record<string, Function> = {
         return {decoded, raw};
     },
 
+    URL_ENCODED: async function(req: ServerRequest, options: ParserOptions) {
+        const raw=await getRaw(req);
+        if(!raw)
+            return;
+        const urlParams=new URLSearchParams(getText(raw));
+        const decoded:any={};
+        for(const [k, v] of urlParams.entries()) {
+            if(v && !isNaN(Number(v)))
+                decoded[k]=+v;
+            else if(v==="true")
+                decoded[k]=true;
+            else if(v==="false")
+                decoded[k]=false
+            else
+                decoded[k]=v;
+        }
+        return {decoded, raw};
+    },
+
     MFD: async function(req: ServerRequest, options: ParserOptions) {
         
     },

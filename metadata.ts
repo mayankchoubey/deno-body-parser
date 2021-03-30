@@ -5,6 +5,7 @@ export enum PARSER_TYPES {
     TEXT='TEXT',
     JSON='JSON',
     MFD='MFD',
+    URL_ENCODED='URL_ENCODED',
     UNKNOWN='UNKNOWN'
 };
 
@@ -79,6 +80,8 @@ export enum MIME_CONTENT_TYPES {
     WAV='audio/wav',
     XLS='application/vnd.ms-excel',
     XLS_X='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ZIP='application/zip',
+    URL_ENCODED='x-www-form-urlencoded',
     MULTIPART_FORM_DATA='multipart/form-data',
     
     
@@ -259,6 +262,18 @@ export const SupportedContentTypeMetadata: {[index: string]:any}={
         ext: 'xlsx',
         resp: ResponseTypes.RESP_TYPE_BINARY,
         parser: PARSER_TYPES.BINARY
+    },
+    ZIP: {
+        ct: MIME_CONTENT_TYPES.ZIP,
+        ext: 'zip',
+        resp: ResponseTypes.RESP_TYPE_BINARY,
+        parser: PARSER_TYPES.BINARY
+    },
+    URL_ENCODED: {
+        ct: MIME_CONTENT_TYPES.URL_ENCODED,
+        ext: 'data',
+        resp: ResponseTypes.RESP_TYPE_DATA,
+        parser: PARSER_TYPES.URL_ENCODED
     },
     MFD: {
         ct: MIME_CONTENT_TYPES.MULTIPART_FORM_DATA,

@@ -4,16 +4,38 @@ import { BufReader } from "https://deno.land/std/io/bufio.ts";
 import { assertThrowsAsync, assert } from "https://deno.land/std/testing/asserts.ts";
 import { ServerRequest } from "https://deno.land/std/http/server.ts";
 
-const HDR_VAL_UNKNOWN_TYPE='x-unknown-type',
-      LOCAL_DIR='./',
-      TEMP_DIR='/var/tmp',
-      OPTIONS_UNKNOWN_AS_TEXT={unknownAsText: true},
-      OPTIONS_SAVE_BODY_TO_FILE={saveBodyToFile: true},
-      OPTIONS_SAVE_BODY_TO_FILE_TO_PATH={saveBodyToFile: true, saveFilePath: TEMP_DIR},
-      SAMPLE_FILE_PATH='./testData/sample',
-      SIMPLE_TEXT_BODY_ALPHABET='ABCDEFGHIJKLMNOPQRSTUVWXYZ',
-      SIMPLE_TEXT_BODY_NUMBERS='1234567890',
-      EMPTY_JSON_BODY={};
+const   HDR_VAL_UNKNOWN_TYPE='x-unknown-type',
+        LOCAL_DIR='./',
+        TEMP_DIR='/var/tmp',
+        OPTIONS_UNKNOWN_AS_TEXT={unknownAsText: true},
+        OPTIONS_SAVE_BODY_TO_FILE={saveBodyToFile: true},
+        OPTIONS_SAVE_BODY_TO_FILE_TO_PATH={saveBodyToFile: true, saveFilePath: TEMP_DIR},
+        SAMPLE_FILE_PATH='./testData/sample',
+        SIMPLE_TEXT_BODY_ALPHABET='ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+        SIMPLE_TEXT_BODY_NUMBERS='1234567890',
+        EMPTY_JSON_BODY={},
+        URL_ENCODED_DATA={
+        1: {
+              a: "field1=value1&field2=value2&field3=true&field4=10&field5=0.5",
+              b: JSON.stringify({field1: 'value1', field2: 'value2', field3: true, field4: 10, field5: 0.5})
+        },
+        2: {
+            a: "str=this+string+has+spaces+in+it",
+            b: JSON.stringify({ str: "this string has spaces in it" })
+        },
+        3: {
+            a: "a=5&b=true&c=false",
+            b: JSON.stringify({a: 5, b: true, c: false})
+        },
+        4: {
+            a: "=4",
+            b: JSON.stringify({ "": 4 })
+        },
+        5: {
+            a: "5=",
+            b: JSON.stringify({"5": ""})
+        }
+      };
 
 function addHeaders(req: ServerRequest, name: string, value: string|number|undefined): void {
     if(!value)
@@ -87,6 +109,7 @@ async function textAsserts(ret:any, data:string|undefined, ext?:string) {
 }
 
 async function dataAsserts(ret:any, data:string|undefined, ext?:string) {
+    console.log(ret, data);
     assert(typeof ret.data === 'object');
     if(!ext)
         assert(JSON.stringify(ret.data) === data);
@@ -453,7 +476,7 @@ Deno.test(`ct=audio/mpeg, sbtftp`, async () => {
     await fileAsserts(ret.files, TEMP_DIR, ext, true);
 });
 
-
+/*
 Deno.test(`ct=video/mp4`, async () => {
     const ext='mp4';
     const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.MP4, undefined, ext);
@@ -474,6 +497,7 @@ Deno.test(`ct=video/mp4, sbtftp`, async () => {
     const ret=await parse(req, OPTIONS_SAVE_BODY_TO_FILE_TO_PATH);
     await fileAsserts(ret.files, TEMP_DIR, ext, true);
 });
+*/
 
 Deno.test(`ct=video/mpeg`, async () => {
     const ext='mpeg';
@@ -753,3 +777,75 @@ Deno.test(`ct=application/vnd.ms-excel, sbtftp`, async () => {
     await fileAsserts(ret.files, TEMP_DIR, ext, true);
 });
 
+Deno.test(`ct=application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, async () => {
+    const ext='xlsx';
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.XLS_X, undefined, ext);
+    const ret=await parse(req);
+    await rawAsserts(ret, undefined, ext);
+});
+
+Deno.test(`ct=application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, sbtf`, async () => {
+    const ext='xlsx';
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.XLS_X, undefined, ext);
+    const ret=await parse(req, OPTIONS_SAVE_BODY_TO_FILE);
+    await fileAsserts(ret.files, LOCAL_DIR, ext, true);
+});
+
+Deno.test(`ct=application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, sbtftp`, async () => {
+    const ext='xlsx';
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.XLS_X, undefined, ext);
+    const ret=await parse(req, OPTIONS_SAVE_BODY_TO_FILE_TO_PATH);
+    await fileAsserts(ret.files, TEMP_DIR, ext, true);
+});
+
+
+Deno.test(`ct=application/zip`, async () => {
+    const ext='zip';
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.ZIP, undefined, ext);
+    const ret=await parse(req);
+    await rawAsserts(ret, undefined, ext);
+});
+
+Deno.test(`ct=application/zip, sbtf`, async () => {
+    const ext='zip';
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.ZIP, undefined, ext);
+    const ret=await parse(req, OPTIONS_SAVE_BODY_TO_FILE);
+    await fileAsserts(ret.files, LOCAL_DIR, ext, true);
+});
+
+Deno.test(`ct=application/zip, sbtftp`, async () => {
+    const ext='zip';
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.ZIP, undefined, ext);
+    const ret=await parse(req, OPTIONS_SAVE_BODY_TO_FILE_TO_PATH);
+    await fileAsserts(ret.files, TEMP_DIR, ext, true);
+});
+
+Deno.test(`ct=application/x-www-form-urlencoded, body=1`, async () => {
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.URL_ENCODED, URL_ENCODED_DATA[1].a, undefined);
+    const ret=await parse(req);
+    await dataAsserts(ret, URL_ENCODED_DATA[1].b);
+});
+
+Deno.test(`ct=application/x-www-form-urlencoded, body=2`, async () => {
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.URL_ENCODED, URL_ENCODED_DATA[2].a, undefined);
+    const ret=await parse(req);
+    await dataAsserts(ret, URL_ENCODED_DATA[2].b);
+});
+
+Deno.test(`ct=application/x-www-form-urlencoded, body=3`, async () => {
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.URL_ENCODED, URL_ENCODED_DATA[3].a, undefined);
+    const ret=await parse(req);
+    await dataAsserts(ret, URL_ENCODED_DATA[3].b);
+});
+
+Deno.test(`ct=application/x-www-form-urlencoded, body=4`, async () => {
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.URL_ENCODED, URL_ENCODED_DATA[4].a, undefined);
+    const ret=await parse(req);
+    await dataAsserts(ret, URL_ENCODED_DATA[4].b);
+});
+
+Deno.test(`ct=application/x-www-form-urlencoded, body=5`, async () => {
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.URL_ENCODED, URL_ENCODED_DATA[5].a, undefined);
+    const ret=await parse(req);
+    await dataAsserts(ret, URL_ENCODED_DATA[5].b);
+});

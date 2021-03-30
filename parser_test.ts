@@ -10,6 +10,7 @@ const   HDR_VAL_UNKNOWN_TYPE='x-unknown-type',
         OPTIONS_UNKNOWN_AS_TEXT={unknownAsText: true},
         OPTIONS_SAVE_BODY_TO_FILE={saveBodyToFile: true},
         OPTIONS_SAVE_BODY_TO_FILE_TO_PATH={saveBodyToFile: true, saveFilePath: TEMP_DIR},
+        OPTIONS_NO_XML_TO_JSON={xmlToJson: false},
         SAMPLE_FILE_PATH='./testData/sample',
         SIMPLE_TEXT_BODY_ALPHABET='ABCDEFGHIJKLMNOPQRSTUVWXYZ',
         SIMPLE_TEXT_BODY_NUMBERS='1234567890',
@@ -35,7 +36,9 @@ const   HDR_VAL_UNKNOWN_TYPE='x-unknown-type',
             a: "5=",
             b: JSON.stringify({"5": ""})
         }
-      };
+      },
+      XML_SAMPLE='<tag>tag content</tag><tag2>another content</tag2><tag3><insideTag>inside content</insideTag><emptyTag /></tag3>',
+      XML_STR=JSON.stringify({tag: "tag content", tag2: "another content", tag3: { insideTag: "inside content", emptyTag: null }});
 
 function addHeaders(req: ServerRequest, name: string, value: string|number|undefined): void {
     if(!value)
@@ -848,4 +851,16 @@ Deno.test(`ct=application/x-www-form-urlencoded, body=5`, async () => {
     const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.URL_ENCODED, URL_ENCODED_DATA[5].a, undefined);
     const ret=await parse(req);
     await dataAsserts(ret, URL_ENCODED_DATA[5].b);
+});
+
+Deno.test(`ct=text/xml, body=simple`, async () => {
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.XML, XML_SAMPLE, undefined);
+    const ret=await parse(req);
+    await dataAsserts(ret, XML_STR);
+});
+
+Deno.test(`ct=text/xml, body=simple`, async () => {
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.XML, XML_SAMPLE, undefined);
+    const ret=await parse(req, OPTIONS_NO_XML_TO_JSON);
+    await textAsserts(ret, XML_SAMPLE);
 });

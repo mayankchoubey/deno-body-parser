@@ -6,11 +6,13 @@ export enum PARSER_TYPES {
     JSON='JSON',
     MFD='MFD',
     URL_ENCODED='URL_ENCODED',
+    XML='XML',
     UNKNOWN='UNKNOWN'
 };
 
 export interface ParserOptions {
     unknownAsText?: boolean,
+    xmlToJson?: boolean,
     saveBodyToFile?: boolean,
     saveFilePath?: string
 };
@@ -82,6 +84,7 @@ export enum MIME_CONTENT_TYPES {
     XLS_X='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     ZIP='application/zip',
     URL_ENCODED='x-www-form-urlencoded',
+    XML="text/xml",
     MULTIPART_FORM_DATA='multipart/form-data',
     
     
@@ -274,6 +277,12 @@ export const SupportedContentTypeMetadata: {[index: string]:any}={
         ext: 'data',
         resp: ResponseTypes.RESP_TYPE_DATA,
         parser: PARSER_TYPES.URL_ENCODED
+    },
+    XML: {
+        ct: MIME_CONTENT_TYPES.XML,
+        ext: 'data',
+        resp: ResponseTypes.RESP_TYPE_DATA,
+        parser: PARSER_TYPES.XML
     },
     MFD: {
         ct: MIME_CONTENT_TYPES.MULTIPART_FORM_DATA,

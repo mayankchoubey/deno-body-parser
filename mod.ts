@@ -61,6 +61,7 @@ function getContentMeta(headers: Headers): ContentMeta {
 
 function getParseOptions(options: ParserOptions): ParserOptions {
     const ret: ParserOptions={};
+    ret.xmlToJson=options.xmlToJson === false? false: true;
     ret.unknownAsText=options.unknownAsText === true ? true: false;
     ret.saveBodyToFile=options.saveBodyToFile === true ? true: false;
     ret.saveFilePath=options.saveFilePath ? options.saveFilePath : './';

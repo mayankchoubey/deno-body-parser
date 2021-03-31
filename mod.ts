@@ -66,32 +66,24 @@ function getParseOptions(options: ParserOptions): ParserOptions {
     ret.saveBodyToFile=options.saveBodyToFile === true ? true: false;
     ret.saveFilePath=options.saveFilePath ? options.saveFilePath : './';
     if(!ret.saveFilePath.endsWith('/'))
-        ret.saveFilePath+='/';
+        ret.saveFilePath=`${ret.saveFilePath}/`;
     return ret;
-}
-
-function encodeRes(body: any) {
-    const encoder=new TextEncoder();
-    if(body.constructor === Uint8Array)
-        return body;
-    else if(typeof body === 'string')
-        return encoder.encode(body);
-    else if(typeof body === 'object')
-        return encoder.encode(JSON.stringify(body));
-    return body;
 }
 
 async function prepareResponse(ctMeta: ContentMeta, decodedObj: any, options: ParserOptions) {
     if(!decodedObj.decoded)
         return;
     let respType=ctMeta.resp;
-    if(ctMeta.parser === PARSER_TYPES.UNKNOWN && options.unknownAsText === true)
+    if((ctMeta.parser === PARSER_TYPES.UNKNOWN && options.unknownAsText === true) ||
+        (ctMeta.parser === PARSER_TYPES.XML && options.xmlToJson === false))
         respType=SupportedContentTypeMetadata[PARSER_TYPES.TEXT].resp;
     if(options.saveBodyToFile === false)
         return {[respType]: decodedObj.decoded};
-    const path=options.saveFilePath+Math.random().toString(36).slice(2)+'.'+ctMeta.ext;
-    await Deno.writeFile(path, decodedObj.raw);
-    return { [ResponseTypes.RESP_TYPE_FILE]: [ { path,
+    const fileName=Math.random().toString(36).slice(2)+'.'+ctMeta.ext;
+    const filePath=(await Deno.realPath(options.saveFilePath || './'))+'/'+fileName;
+    await Deno.writeFile(filePath, decodedObj.raw);
+    return { [ResponseTypes.RESP_TYPE_FILE]: [ { name: fileName,
+                                                 path: filePath,
                                                  type: ctMeta.ct,
                                                  size: decodedObj.raw.length }]};
 }

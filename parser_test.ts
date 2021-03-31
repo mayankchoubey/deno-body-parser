@@ -5,11 +5,11 @@ import { assertThrowsAsync, assert } from "https://deno.land/std/testing/asserts
 import { ServerRequest } from "https://deno.land/std/http/server.ts";
 
 const   HDR_VAL_UNKNOWN_TYPE='x-unknown-type',
-        LOCAL_DIR='./',
-        TEMP_DIR='/var/tmp',
+        LOCAL_DIR=await Deno.realPath('./'),
+        TEMP_DIR='/private/var/tmp',
         OPTIONS_UNKNOWN_AS_TEXT={unknownAsText: true},
         OPTIONS_SAVE_BODY_TO_FILE={saveBodyToFile: true},
-        OPTIONS_SAVE_BODY_TO_FILE_TO_PATH={saveBodyToFile: true, saveFilePath: TEMP_DIR},
+        OPTIONS_SAVE_BODY_TO_FILE_TO_PATH=Object.assign({}, OPTIONS_SAVE_BODY_TO_FILE, {saveFilePath: TEMP_DIR}),
         OPTIONS_NO_XML_TO_JSON={xmlToJson: false},
         SAMPLE_FILE_PATH='./testData/sample',
         SIMPLE_TEXT_BODY_ALPHABET='ABCDEFGHIJKLMNOPQRSTUVWXYZ',
@@ -78,6 +78,8 @@ async function fileAsserts(files:Array<ParserMeta.FileData>, initPath: string, e
     const file=files[0];
     assert(file.path.length>0);
     assert(file.path.endsWith(ext));
+    assert(file.name.length>0);
+    assert(file.name.endsWith(ext));
     assert(file.path.startsWith(initPath));
     assert(file.size>0);
     if(compareWithOrig === true) {
@@ -112,7 +114,6 @@ async function textAsserts(ret:any, data:string|undefined, ext?:string) {
 }
 
 async function dataAsserts(ret:any, data:string|undefined, ext?:string) {
-    console.log(ret, data);
     assert(typeof ret.data === 'object');
     if(!ext)
         assert(JSON.stringify(ret.data) === data);
@@ -853,6 +854,20 @@ Deno.test(`ct=application/x-www-form-urlencoded, body=5`, async () => {
     await dataAsserts(ret, URL_ENCODED_DATA[5].b);
 });
 
+Deno.test(`ct=application/x-www-form-urlencoded, body=5, sbtf`, async () => {
+    const ext='data';
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.URL_ENCODED, URL_ENCODED_DATA[5].a, undefined);
+    const ret=await parse(req, OPTIONS_SAVE_BODY_TO_FILE);
+    await fileAsserts(ret.files, LOCAL_DIR, ext, false);
+});
+
+Deno.test(`ct=application/x-www-form-urlencoded, body=5, sbtftp`, async () => {
+    const ext='data';
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.URL_ENCODED, URL_ENCODED_DATA[5].a, undefined);
+    const ret=await parse(req, OPTIONS_SAVE_BODY_TO_FILE_TO_PATH);
+    await fileAsserts(ret.files, TEMP_DIR, ext, false);
+});
+
 Deno.test(`ct=text/xml, body=simple`, async () => {
     const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.XML, XML_SAMPLE, undefined);
     const ret=await parse(req);
@@ -863,4 +878,18 @@ Deno.test(`ct=text/xml, body=simple`, async () => {
     const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.XML, XML_SAMPLE, undefined);
     const ret=await parse(req, OPTIONS_NO_XML_TO_JSON);
     await textAsserts(ret, XML_SAMPLE);
+});
+
+Deno.test(`ct=text/xml, body=sample, sbtf`, async () => {
+    const ext='xml';
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.XML, undefined, ext);
+    const ret=await parse(req, Object.assign({}, OPTIONS_SAVE_BODY_TO_FILE, OPTIONS_NO_XML_TO_JSON));
+    await fileAsserts(ret.files, LOCAL_DIR, ext, true);
+});
+
+Deno.test(`ct=text/xml, body=sample, sbtftp`, async () => {
+    const ext='xml';
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.XML, undefined, ext);
+    const ret=await parse(req, Object.assign({}, OPTIONS_SAVE_BODY_TO_FILE_TO_PATH, OPTIONS_NO_XML_TO_JSON));
+    await fileAsserts(ret.files, TEMP_DIR, ext, true);
 });

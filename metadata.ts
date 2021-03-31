@@ -18,9 +18,11 @@ export interface ParserOptions {
 };
 
 export interface FileData {
+    name: string,
     path: string,
     type: string,
-    size: number
+    size: number,
+    content?: Uint8Array
 };
 
 export enum PARSER_ERRORS {
@@ -280,7 +282,7 @@ export const SupportedContentTypeMetadata: {[index: string]:any}={
     },
     XML: {
         ct: MIME_CONTENT_TYPES.XML,
-        ext: 'data',
+        ext: 'xml',
         resp: ResponseTypes.RESP_TYPE_DATA,
         parser: PARSER_TYPES.XML
     },

@@ -71,8 +71,12 @@ function getParseOptions(options: ParserOptions): ParserOptions {
     return ret;
 }
 
+function getRandomFileName(ext:string) {
+    return Math.random().toString(36).slice(2)+'.'+ext;
+}
+
 function getFileName(url:string, ext:string) {
-    const randomFileName:string=Math.random().toString(36).slice(2)+'.'+ext;
+    const randomFileName:string=getRandomFileName(ext);
     if(!url)
         return randomFileName;
     const qs=url.split("?")[1] || undefined;
@@ -92,6 +96,18 @@ async function saveIntoFile(ctMeta: ContentMeta, raw:Uint8Array, url:string, pat
     return ret;
 }
 
+async function updateMFDFilePaths(data:any, options: ParserOptions) {
+    for(const k in data.files) {
+        const file=data.files[k];
+        if(!file.path)
+            continue;
+        const ext:string=file.name.split(".")[1] || "unknown";
+        const newPath=(await Deno.realPath(options.saveFilePath||"./"))+'/'+getRandomFileName(ext);
+        await Deno.rename(file.path, newPath);
+        file.path=newPath;
+    }
+}
+
 async function prepareResponse(url:string, ctMeta: ContentMeta, decodedObj: any, options: ParserOptions) {
     if(!decodedObj || !decodedObj.decoded || !decodedObj.raw)
         return;
@@ -103,6 +119,7 @@ async function prepareResponse(url:string, ctMeta: ContentMeta, decodedObj: any,
     if(decodedObj.decoded[INTERNAL_MFD_FILE_KEY]) {
         ret[ResponseTypes.RESP_TYPE_FILE]=decodedObj.decoded[INTERNAL_MFD_FILE_KEY];
         delete decodedObj.decoded[INTERNAL_MFD_FILE_KEY];
+        await updateMFDFilePaths(ret, options);
     }
     if(options.saveBodyToFile === false)
         return ret;

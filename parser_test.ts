@@ -188,8 +188,6 @@ async function prepareRequest(ct:string|undefined, body:any|undefined, ext:strin
     return req;
 }
 
-/*
-
 Deno.test("empty req", async () => {
     const req=await prepareRequest(undefined, undefined, undefined);
     assertThrowsAsync(() => parse(req), Error);
@@ -950,8 +948,6 @@ Deno.test(`ct=text/xml, body=sample, sbtftp`, async () => {
     const ret=await parse(req, Object.assign({}, OPTIONS_SAVE_BODY_TO_FILE_TO_PATH, OPTIONS_NO_XML_TO_JSON));
     await fileAsserts(ret.files, TEMP_DIR, ext, true);
 });
-
-*/
 
 
 Deno.test(`ct=multipart/form-data, body=simple`, async () => {

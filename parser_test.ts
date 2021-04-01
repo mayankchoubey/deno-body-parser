@@ -3,6 +3,7 @@ import * as ParserMeta from "./metadata.ts";
 import { BufReader } from "https://deno.land/std/io/bufio.ts";
 import { assertThrowsAsync, assert } from "https://deno.land/std/testing/asserts.ts";
 import { ServerRequest } from "https://deno.land/std/http/server.ts";
+import { MultipartWriter } from "https://deno.land/std/mime/mod.ts";
 
 const   HDR_VAL_UNKNOWN_TYPE='x-unknown-type',
         LOCAL_DIR=await Deno.realPath('./'),
@@ -15,6 +16,12 @@ const   HDR_VAL_UNKNOWN_TYPE='x-unknown-type',
         SIMPLE_TEXT_BODY_ALPHABET='ABCDEFGHIJKLMNOPQRSTUVWXYZ',
         SIMPLE_TEXT_BODY_NUMBERS='1234567890',
         EMPTY_JSON_BODY={},
+        SIMPLE_JSON_FOR_MFD={
+            a: 1,
+            b: 2,
+            c: "d",
+            e: "f"
+        },
         URL_ENCODED_DATA={
         1: {
               a: "field1=value1&field2=value2&field3=true&field4=10&field5=0.5",
@@ -62,9 +69,32 @@ async function addBody(req: ServerRequest, ct: string|undefined, body: any, ext:
         len=fileContent.length;
     }
     else if(typeof body === 'object') {
-        const encBody=JSON.stringify(body);
-        req.r = encodeBody(encBody);
-        len=encBody.length;
+        if(ct !== ParserMeta.MIME_CONTENT_TYPES.MULTIPART_FORM_DATA) {
+            const encBody=JSON.stringify(body);
+            req.r = encodeBody(encBody);
+            len=encBody.length;
+        } else {
+            const buf = new Deno.Buffer();
+            const mw = new MultipartWriter(buf);
+            let fileCount=1;
+            for(const k in body) {
+                if(k==='exts') {
+                    for(const aFile of body[k]) {
+                        const file:string=SAMPLE_FILE_PATH+aFile;
+                        const fileHdl = await Deno.open(file, { read: true });
+                        await mw.writeFile('filefield'+fileCount, file.split('/')?.pop()||'./sample.abcd', fileHdl);
+                        fileCount++;
+                        fileHdl.close();
+                    }
+                    delete body[k];
+                } else
+                    await mw.writeField(k, body[k]);
+            }
+            mw.close();
+            req.r=new BufReader(buf);
+            len=buf.length;
+            addHeaders(req, ParserMeta.HTTP_Header.HDR_CONTENT_TYPE, mw.formDataContentType());
+        }
     }        
     else if(typeof body === 'string') {
         len=body.length;
@@ -73,22 +103,48 @@ async function addBody(req: ServerRequest, ct: string|undefined, body: any, ext:
     addHeaders(req, ParserMeta.HTTP_Header.HDR_CONTENT_LENGTH, len);
 }
 
-async function fileAsserts(files:Array<ParserMeta.FileData>, initPath: string, ext: string, compareWithOrig:boolean=false) {
-    assert(files.length === 1);
-    const file=files[0];
-    assert(file.path.length>0);
-    assert(file.path.endsWith(ext));
+async function fileAsserts(files:Record<string, ParserMeta.FileData>, initPath: string, ext: string, compareWithOrig:boolean=false) {
+    assert(Object.keys(files).length === 1);
+    assert(Object.keys(files.uploadedFile).length>0)
+    const file=files.uploadedFile;
+    assert(file.path?.length||0>0);
+    assert(file.path?.endsWith(ext));
     assert(file.name.length>0);
     assert(file.name.endsWith(ext));
-    assert(file.path.startsWith(initPath));
+    assert(file.path?.startsWith(initPath));
     assert(file.size>0);
     if(compareWithOrig === true) {
         const origFilePath=`${SAMPLE_FILE_PATH}.${ext}`;
         const origFile=await Deno.readFile(origFilePath);
-        const gotFile=await Deno.readFile(file.path);
+        const gotFile=await Deno.readFile(file.path!);
         assert(gotFile.length === origFile.length);
     }
-    await Deno.remove(file.path);
+    await Deno.remove(file.path!);
+}
+
+async function mfdFileAsserts(files:Record<string, ParserMeta.FileData>, initPath: string, ext: string[], compareWithOrig:boolean=false) {
+    assert(Object.keys(files).length>=1);
+    let index=0;
+    for(const fileO in files) {
+        const fieldName:string='filefield'+`${index+1}`;
+        assert(fileO === fieldName);
+        const file:ParserMeta.FileData=files[fileO];
+        assert(file.path || file.content);
+        assert(file.name.length>0);
+        assert(file.name.endsWith(ext[index]));
+        assert(file.size>0);
+        if(compareWithOrig === true) {
+            const origFilePath=`${SAMPLE_FILE_PATH}${ext[index]}`;
+            const origFile=await Deno.readFile(origFilePath);
+            if(file.path) {
+                const gotFile=await Deno.readFile(file.path!);
+                assert(gotFile.length === origFile.length);
+                await Deno.remove(file.path!);
+            } else
+                assert(file.content?.length === origFile.length);
+        }
+        index++;
+    }
 }
 
 async function rawAsserts(ret:any, data:string|undefined, ext?:string) {
@@ -131,6 +187,8 @@ async function prepareRequest(ct:string|undefined, body:any|undefined, ext:strin
     await addBody(req, ct, body, ext);
     return req;
 }
+
+/*
 
 Deno.test("empty req", async () => {
     const req=await prepareRequest(undefined, undefined, undefined);
@@ -480,7 +538,6 @@ Deno.test(`ct=audio/mpeg, sbtftp`, async () => {
     await fileAsserts(ret.files, TEMP_DIR, ext, true);
 });
 
-/*
 Deno.test(`ct=video/mp4`, async () => {
     const ext='mp4';
     const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.MP4, undefined, ext);
@@ -501,7 +558,7 @@ Deno.test(`ct=video/mp4, sbtftp`, async () => {
     const ret=await parse(req, OPTIONS_SAVE_BODY_TO_FILE_TO_PATH);
     await fileAsserts(ret.files, TEMP_DIR, ext, true);
 });
-*/
+
 
 Deno.test(`ct=video/mpeg`, async () => {
     const ext='mpeg';
@@ -892,4 +949,40 @@ Deno.test(`ct=text/xml, body=sample, sbtftp`, async () => {
     const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.XML, undefined, ext);
     const ret=await parse(req, Object.assign({}, OPTIONS_SAVE_BODY_TO_FILE_TO_PATH, OPTIONS_NO_XML_TO_JSON));
     await fileAsserts(ret.files, TEMP_DIR, ext, true);
+});
+
+*/
+
+
+Deno.test(`ct=multipart/form-data, body=simple`, async () => {
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.MULTIPART_FORM_DATA, SIMPLE_JSON_FOR_MFD, undefined);
+    const ret=await parse(req);
+    await dataAsserts(ret, JSON.stringify(SIMPLE_JSON_FOR_MFD));
+});
+
+Deno.test(`ct=multipart/form-data, body=k, 1f`, async () => {
+    const exts=['.xls'];
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.MULTIPART_FORM_DATA, 
+                                    Object.assign({}, SIMPLE_JSON_FOR_MFD, {exts}), undefined);
+    const ret=await parse(req);
+    await dataAsserts(ret, JSON.stringify(SIMPLE_JSON_FOR_MFD));
+    await mfdFileAsserts(ret.files, LOCAL_DIR, exts, true);
+});
+
+Deno.test(`ct=multipart/form-data, body=k, 2f`, async () => {
+    const exts=['.xls', '.xlsx'];
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.MULTIPART_FORM_DATA, 
+                                    Object.assign({}, SIMPLE_JSON_FOR_MFD, {exts}), undefined);
+    const ret=await parse(req);
+    await dataAsserts(ret, JSON.stringify(SIMPLE_JSON_FOR_MFD));
+    await mfdFileAsserts(ret.files, LOCAL_DIR, exts, true);
+});
+
+Deno.test(`ct=multipart/form-data, body=k, 2f, bigfile`, async () => {
+    const exts=['.xls', '.mp4'];
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.MULTIPART_FORM_DATA, 
+                                    Object.assign({}, SIMPLE_JSON_FOR_MFD, {exts}), undefined);
+    const ret=await parse(req);
+    await dataAsserts(ret, JSON.stringify(SIMPLE_JSON_FOR_MFD));
+    await mfdFileAsserts(ret.files, LOCAL_DIR, exts, true);
 });

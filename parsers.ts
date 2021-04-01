@@ -1,5 +1,6 @@
 import { ServerRequest } from "https://deno.land/std/http/server.ts";
-import { ParserOptions } from "./metadata.ts";
+import { MultipartReader, isFormFile, FormFile } from "https://deno.land/std/mime/mod.ts";
+import { ParserOptions, FileData, INTERNAL_MFD_FILE_KEY } from "./metadata.ts";
 
 async function getRaw(req: ServerRequest) {
     try {
@@ -33,6 +34,18 @@ function parseValue(v:string) {
     else if(v==="false")
         return false
     return v;
+}
+
+function parseFormFile(v:FormFile):FileData {
+    const ret:FileData={name: v.filename,
+                        type: v.type,
+                        size: v.size,
+                        };
+    if(v.content)
+        ret.content=v.content;
+    else
+        ret.path=v.tempfile;
+    return ret;
 }
 
 export const Parsers: Record<string, Function> = {
@@ -80,7 +93,24 @@ export const Parsers: Record<string, Function> = {
     },
 
     MFD: async function(req: ServerRequest, options: ParserOptions) {
-        
+        const ct = req.headers.get("content-type");
+        const boundary=ct?.split(";")[1]?.split("=")[1];
+        if(!boundary)
+            return;
+        const mr = new MultipartReader(req.body, boundary);
+        const form = await mr.readForm();
+        const decoded:any={};
+        for(const entry of form.entries()) {
+            const k=entry[0], v=entry[1];
+            if(isFormFile(v)) {
+                if(!decoded[INTERNAL_MFD_FILE_KEY])
+                    decoded[INTERNAL_MFD_FILE_KEY]={};
+                decoded[INTERNAL_MFD_FILE_KEY][k]=parseFormFile(v);
+            }
+            else
+                decoded[k]=parseValue(v as string);
+        }
+        return {decoded, raw: await getRaw(req)};
     },
 
     UNKNOWN: async function(req: ServerRequest, options: ParserOptions) {

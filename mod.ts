@@ -6,7 +6,8 @@ import { ParserOptions,
          ResponseTypes,
          SupportedContentTypeMetadata,
          ContentMeta,
-         PARSER_TYPES
+         PARSER_TYPES,
+         INTERNAL_MFD_FILE_KEY
         } from "./metadata.ts";
 import { Parsers } from "./parsers.ts";
 import { ServerRequest } from "https://deno.land/std/http/server.ts";
@@ -70,22 +71,43 @@ function getParseOptions(options: ParserOptions): ParserOptions {
     return ret;
 }
 
-async function prepareResponse(ctMeta: ContentMeta, decodedObj: any, options: ParserOptions) {
-    if(!decodedObj.decoded)
+function getFileName(url:string, ext:string) {
+    const randomFileName:string=Math.random().toString(36).slice(2)+'.'+ext;
+    if(!url)
+        return randomFileName;
+    const qs=url.split("?")[1] || undefined;
+    if(!qs)
+        return randomFileName;
+    const qsObj=new URLSearchParams(qs);
+    return qsObj.get("filename") || qsObj.get("fileName") || randomFileName;
+}
+
+async function saveIntoFile(ctMeta: ContentMeta, raw:Uint8Array, url:string, path:string='./') {
+    const ret:any={};
+    ret.name=getFileName(url, ctMeta.ext);
+    ret.path=(await Deno.realPath(path))+'/'+ret.name;
+    await Deno.writeFile(ret.path, raw);
+    ret.type=ctMeta.ct;
+    ret.size=raw.length;
+    return ret;
+}
+
+async function prepareResponse(url:string, ctMeta: ContentMeta, decodedObj: any, options: ParserOptions) {
+    if(!decodedObj || !decodedObj.decoded || !decodedObj.raw)
         return;
     let respType=ctMeta.resp;
     if((ctMeta.parser === PARSER_TYPES.UNKNOWN && options.unknownAsText === true) ||
         (ctMeta.parser === PARSER_TYPES.XML && options.xmlToJson === false))
         respType=SupportedContentTypeMetadata[PARSER_TYPES.TEXT].resp;
+    const ret={[respType]: decodedObj.decoded};
+    if(decodedObj.decoded[INTERNAL_MFD_FILE_KEY]) {
+        ret[ResponseTypes.RESP_TYPE_FILE]=decodedObj.decoded[INTERNAL_MFD_FILE_KEY];
+        delete decodedObj.decoded[INTERNAL_MFD_FILE_KEY];
+    }
     if(options.saveBodyToFile === false)
-        return {[respType]: decodedObj.decoded};
-    const fileName=Math.random().toString(36).slice(2)+'.'+ctMeta.ext;
-    const filePath=(await Deno.realPath(options.saveFilePath || './'))+'/'+fileName;
-    await Deno.writeFile(filePath, decodedObj.raw);
-    return { [ResponseTypes.RESP_TYPE_FILE]: [ { name: fileName,
-                                                 path: filePath,
-                                                 type: ctMeta.ct,
-                                                 size: decodedObj.raw.length }]};
+        return ret;
+    const fileData=await saveIntoFile(ctMeta, decodedObj.raw, url, options.saveFilePath);
+    return { [ResponseTypes.RESP_TYPE_FILE]: { "uploadedFile": fileData}};
 }
 
 export async function parse(req: ServerRequest, 
@@ -96,6 +118,6 @@ export async function parse(req: ServerRequest,
     const parseOptions:ParserOptions=getParseOptions(options);
     const ctMeta:ContentMeta=getContentMeta(req.headers);
     const decodedObj=await Parsers[ctMeta.parser](req, parseOptions);
-    return await prepareResponse(ctMeta, decodedObj, parseOptions);
+    return await prepareResponse(req.url, ctMeta, decodedObj, parseOptions);
 }
 

@@ -19,9 +19,9 @@ export interface ParserOptions {
 
 export interface FileData {
     name: string,
-    path: string,
     type: string,
     size: number,
+    path?: string,
     content?: Uint8Array
 };
 
@@ -98,6 +98,8 @@ export interface ContentMeta {
     resp: string,
     parser: string
 };
+
+export const INTERNAL_MFD_FILE_KEY='__mfd__files__';
 
 export const SupportedContentTypeMetadata: {[index: string]:any}={
     AUDIO_AAC: {

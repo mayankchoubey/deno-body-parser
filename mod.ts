@@ -13,7 +13,7 @@ import { Parsers } from "./parsers.ts";
 import { ServerRequest } from "https://deno.land/std/http/server.ts";
 
 function raiseException(message: string) {
-    let errMessage='DenoBodyParser: caught error ';
+    let errMessage='UniversalBodyParser: caught error ';
     if(message)
         errMessage+=message;
     throw new Error(errMessage);

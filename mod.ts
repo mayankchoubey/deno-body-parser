@@ -114,6 +114,7 @@ async function postProcessMFD(data:any, options: ParserOptions) {
             const ext=file.name.split(".")[1] || KEY_UNKNOWN_LC;
             const fileData=await saveIntoFile({ext} as ContentMeta, file.content, '', options.saveFilePath, file.name);
             file.path=fileData.path;
+            delete file.content;
         } else {
             const ext:string=file.name.split(".")[1] || KEY_UNKNOWN_LC;
             const newPath=(await Deno.realPath(options.saveFilePath||"./"))+'/'+getRandomFileName(ext);

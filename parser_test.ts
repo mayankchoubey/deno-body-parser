@@ -996,6 +996,22 @@ Deno.test(`ct=multipart/form-data, body=simple, sbtf`, async () => {
     const ext='json';
     const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.MULTIPART_FORM_DATA, SIMPLE_JSON_FOR_MFD, undefined);
     const ret=await parse(req, OPTIONS_SAVE_BODY_TO_FILE);
-    console.log(ret);
     await fileAsserts(ret.files, LOCAL_DIR, ext, false);
+});
+
+Deno.test(`ct=multipart/form-data, body=simple, sbtftp`, async () => {
+    const ext='json';
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.MULTIPART_FORM_DATA, SIMPLE_JSON_FOR_MFD, undefined);
+    const ret=await parse(req, OPTIONS_SAVE_BODY_TO_FILE_TO_PATH);
+    await fileAsserts(ret.files, TEMP_DIR, ext, false);
+});
+
+Deno.test(`ct=multipart/form-data, body=k, 1f, sbtf`, async () => {
+    const exts=['.xls'];
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.MULTIPART_FORM_DATA, 
+                                    Object.assign({}, SIMPLE_JSON_FOR_MFD, {exts}), undefined);
+    const ret=await parse(req, OPTIONS_SAVE_BODY_TO_FILE);
+    console.log(ret);
+    //await dataAsserts(ret, JSON.stringify(SIMPLE_JSON_FOR_MFD));
+    await mfdFileAsserts(ret.files, LOCAL_DIR, exts, true);
 });

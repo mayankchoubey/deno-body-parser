@@ -127,8 +127,8 @@ async function mfdFileAsserts(files:Record<string, ParserMeta.FileData>, initPat
     let index=0;
     for(const fileO in files) {
         const fieldName:string='filefield'+`${index+1}`;
-        assert(fileO === fieldName);
-        const file:ParserMeta.FileData=files[fileO];
+        assert(fileO === fieldName || fileO === "uploadedFile");
+        const file:ParserMeta.FileData=files[fileO] || files["uploadedFile"];
         assert(file.path || file.content);
         assert(file.name.length>0);
         assert(file.name.endsWith(ext[index]));
@@ -139,10 +139,11 @@ async function mfdFileAsserts(files:Record<string, ParserMeta.FileData>, initPat
             if(file.path) {
                 const gotFile=await Deno.readFile(file.path!);
                 assert(gotFile.length === origFile.length);
-                await Deno.remove(file.path!);
             } else
                 assert(file.content?.length === origFile.length);
         }
+        if(file.path)
+            await Deno.remove(file.path!);
         index++;
     }
 }
@@ -187,8 +188,6 @@ async function prepareRequest(ct:string|undefined, body:any|undefined, ext:strin
     await addBody(req, ct, body, ext);
     return req;
 }
-
-/*
 
 Deno.test("empty req", async () => {
     const req=await prepareRequest(undefined, undefined, undefined);
@@ -956,8 +955,6 @@ Deno.test(`ct=text/xml, body=sample, sbtftp`, async () => {
     await fileAsserts(ret.files, TEMP_DIR, ext, true);
 });
 
-*/
-
 
 Deno.test(`ct=multipart/form-data, body=simple`, async () => {
     const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.MULTIPART_FORM_DATA, SIMPLE_JSON_FOR_MFD, undefined);
@@ -1011,7 +1008,17 @@ Deno.test(`ct=multipart/form-data, body=k, 1f, sbtf`, async () => {
     const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.MULTIPART_FORM_DATA, 
                                     Object.assign({}, SIMPLE_JSON_FOR_MFD, {exts}), undefined);
     const ret=await parse(req, OPTIONS_SAVE_BODY_TO_FILE);
-    console.log(ret);
     //await dataAsserts(ret, JSON.stringify(SIMPLE_JSON_FOR_MFD));
-    await mfdFileAsserts(ret.files, LOCAL_DIR, exts, true);
+    exts.push('.json');
+    await mfdFileAsserts(ret.files, LOCAL_DIR, exts, false);
+});
+
+Deno.test(`ct=multipart/form-data, body=k, 2f, sbtftp`, async () => {
+    const exts=['.xls', '.html'];
+    const req=await prepareRequest(ParserMeta.MIME_CONTENT_TYPES.MULTIPART_FORM_DATA, 
+                                    Object.assign({}, SIMPLE_JSON_FOR_MFD, {exts}), undefined);
+    const ret=await parse(req, OPTIONS_SAVE_BODY_TO_FILE);
+    //await dataAsserts(ret, JSON.stringify(SIMPLE_JSON_FOR_MFD));
+    exts.push('.json');
+    await mfdFileAsserts(ret.files, LOCAL_DIR, exts, false);
 });

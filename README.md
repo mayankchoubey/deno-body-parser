@@ -1,14 +1,14 @@
-#Universal body-parser for Deno
+# Universal body-parser for Deno
+
 This is a universal body-parser for Deno that provides an easy interface to parse most of the common content types. The user need not worry at all about the content type. The only thing to be done is to pass the HTTP request object (`ServerRequest`) to a simple parse function and let it work the magic! The parse function returns the output in one of the four predefined formats:
  
 - `raw`: Binary output
 - `txt`: Text/string output
 - `data`: Object output
 - `files`: Uploaded files
+
  
-That's all!
- 
-##Simple usage
+## Simple usage
 In the simplest form, the parse function can be invoked with only the `ServerRequest` object. If there is any error, headers are missing or malformed, the body is absent, malformed, or unparseable, etc, `undefined` would be returned.
  
 ```ts
@@ -31,7 +31,7 @@ curl http://localhost:8080 -H 'content-type: text/plain' -d "abcd"
 //{ txt: "abcd" }
 ```
  
-##Advanced usage
+## Advanced usage
 In the advanced form, the parse function takes a second optional argument that can be used either to control behavior or redirect the output:
  
 Option | Type | Possible values | Default value | Usage
@@ -69,7 +69,7 @@ curl http://localhost:8080 --data-binary @testdata/sample.html -H 'content-type:
 }
 ```
  
-##Output
+## Output
 As mentioned earlier, the output of the parser is always an object that contains either `raw`, `txt`, `json`, or `files`. The output depends on the content type. For example - mp3 gets treated as raw, text/plain gets treated as txt, and application/json gets treated as JSON.
  
 Output type | Description
@@ -79,7 +79,7 @@ Output type | Description
 `data` | Json output (application/json, x-www-form-urlencoded, etc.)
 `files` | Uploaded files (multipart/form-data, or body is explicitly saved into a file)
  
-```json
+```shell
 { txt: "abcd" }
 { raw: Uint8Array(4) [ 97, 98, 99, 100 ] }
 { data: { a: "b" } }
@@ -96,7 +96,7 @@ Output type | Description
 ```
  
  
-##Supported Content Types
+## Supported Content Types
 The universal parser recognizes a large number of content types. The following is the list of supported content types and how they are treated:
  
 Content type | Output type
@@ -142,7 +142,7 @@ Although the list is long, the content types are usually in one of the three cat
  
 The next three sections will go over the detailed handling of each of the three categories.
  
-##Handling binary body
+## Handling binary body
 A binary body is something that can't be parsed, so needs to be handled as is. Some examples are mp3, png, jpeg, mpeg, zip, etc.
  
 For binary bodies, the parse function returns the output in `raw`, unless the body has been redirected to a file.
@@ -202,7 +202,7 @@ curl http://localhost:8080 -H 'content-type: image/png' --data-binary @./testdat
  
 The file name is either taken from query param `filename` or `fileName`, or randomly generated. The file extension is decided by the content type.
  
-##Handling textual body
+## Handling textual body
 A textual body is like strings containing textual data (neither object nor binary). Some examples are plain text data, HTML, CSV, etc.
  
 The parse function is the same regardless of the type of body. The only difference is in the output. For textual bodies, the output comes in `txt`.
@@ -268,12 +268,12 @@ curl http://localhost:8080 -H 'content-type: text/html' --data-binary @testdata/
 }
 ```
  
-##Handling structured body
+## Handling structured body
 A structured body is one that has the data in a structured form that can be parsed into Javascript objects. For example - application/json can be directly converted to JS object. Similarly, urlencoded and a part of the multipart/form-data is also parsed into JS objects.
  
 For structured bodies, the output comes in `data`.
  
-###Json
+### Json
 A JSON body is directly parsed and then returned as a JS object.
  
 ```ts
@@ -302,7 +302,7 @@ No body received
 undefined
 ```
  
-###URL-encoded
+### URL-encoded
 A URL encoded body is parsed into key-value pairs and then converted to a JS object. For the user, the output still comes in `data` as a JS object.
  
 ```shell
@@ -312,7 +312,7 @@ curl http://localhost:8080 -H 'content-type: x-www-form-urlencoded' -d 'a=b&c=d'
 { data: { a: "b", c: "d" } }
 ```
  
-###Multipart/form-data
+### Multipart/form-data
 A multipart form data body is a bit complicated to parse as it could contain a mix of key-value pairs and files. The parser converts all the key-value pairs into a JS object and returns them in `data`. For files, the parser returns them in `files` object. If the total body size is less than 10M, the files would reside in memory, otherwise, they'd go into the disk.
  
 Here is an example of multipart/form-data with simple fields (no files):
@@ -417,10 +417,10 @@ curl http://localhost:8080 -F "a=b" -F "c=d" -F "file1=@./testdata/sample.jpg" -
 ```
 All the parts present in the multipart body have been saved into files at the mentioned path `/private/var/tmp`.
 
-##More examples
+## More examples
 Some more examples are present [here](./examples)
  
-##Suggestions or issues
+## Suggestions or issues
 Please open a ticket for any suggestions or issues. They'll be addressed as soon as possible.
  
 

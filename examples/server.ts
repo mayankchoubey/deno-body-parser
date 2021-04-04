@@ -1,4 +1,4 @@
-import { parse, FileData } from "../mod.ts";
+import { parse } from "https://raw.githubusercontent.com/mayankchoubey/deno-body-parser/main/mod.ts";
 import { serve } from "https://deno.land/std/http/server.ts";
 
 const dataStorePath='/private/var/tmp/uploads';
@@ -26,22 +26,22 @@ for await (const request of server) {
             }
             const id=body.data.id, key=body.data.prop.key, val=body.data.prop.val;
             //add kv to product somewhere
-            console.log(id, key, val);
+            console.log(body, id, key, val);
             request.respond({status: 204});
             break;
         }
 
         case '/submit': {
             const body=await parse(request);
-            if(!(body && body.data && body.files)) {
+            if(!(body && body.data)) {
                 request.respond({status: 400});
                 break;
             }
             const meta=body.data;
-            const selfie=body.files.selfie, dl=body.files.dl;
+            const selfie=body.files?.selfie, dl=body.files?.dl;
             //do something with data and files
             console.log(meta, selfie, dl);
-            const retData=encoder.encode(JSON.stringify({uploadedSize: {selfie: selfie.size, dl: dl.size}}));
+            const retData=encoder.encode(JSON.stringify({uploadedSize: {selfie: selfie?.size, dl: dl?.size}}));
             request.respond({status: 201, body: retData});
             break;
         }
